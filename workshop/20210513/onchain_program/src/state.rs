@@ -5,6 +5,7 @@ use solana_program::{
     program_error::ProgramError,
     program_pack::{IsInitialized, Pack, Sealed},
     pubkey::Pubkey,
+    msg,
 };
 use std::str::from_utf8;
 
@@ -47,6 +48,7 @@ impl Pack for HelloWorldState {
  
         account_key_buf.copy_from_slice(self.account_key.as_ref());
         message_len_buf[0] = self.message.len() as u8;
-        message_buf.copy_from_slice(&self.message.as_bytes());
+        msg!("pack copy slice");
+        message_buf[..self.message.len()].copy_from_slice(&self.message.as_bytes());
     }
 }

@@ -50,13 +50,11 @@ impl Processor {
             return Err(ProgramError::MissingRequiredSignature);
         }
         
-
         let mut state = HelloWorldState::unpack_unchecked(&message_info.data.borrow())?;
         state.account_key = *client_info.key;
         state.message = message;
         
         HelloWorldState::pack(state, &mut message_info.data.borrow_mut())?;
-
         Ok(())
     }
 
