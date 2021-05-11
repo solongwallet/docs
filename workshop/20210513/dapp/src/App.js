@@ -23,12 +23,11 @@ class Content extends React.Component {
 
     //let url =  'http://api.mainnet-beta.solana.com';
     //let url =  'https://solana-api.projectserum.com';
-    let url =  'http://119.28.234.214:8899';
-    //let url =  'https://devnet.solana.com';
+    let url =  'https://devnet.solana.com';
     this.connection = new Connection(url);
-    this.programID = new PublicKey("ASFNG77geRx6zVR3i7z7UU3oS7r1kQ4QuAW2ppYyYaiC");
+    this.programID = new PublicKey("8B7QfHs8gFKmSLfTSiLoHCDntZ94BKoaEVe82sxBqjei");
     this.messageAccount = new Account();
-    this.playerPrivKey = [136,110,52,25,177,59,33,252,208,157,67,200,66,34,83,248,94,110,161,40,156,235,104,28,73,233,3,255,109,59,85,164,240,29,177,212,46,230,9,255,12,214,10,209,78,79,174,119,160,91,178,114,42,99,0,177,50,110,54,221,212,219,204,115];
+    this.playerPrivKey = [82,225,254,52,201,68,118,133,116,22,32,184,203,37,211,93,152,39,183,144,80,221,96,180,32,218,118,10,16,137,239,56,223,133,86,36,186,139,88,155,30,10,104,80,106,84,55,105,47,30,248,38,224,88,195,126,248,29,120,173,150,207,110,168];
     this.playerAccount = new Account(this.playerPrivKey);
   }
 
