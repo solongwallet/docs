@@ -1,0 +1,511 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Effective Solana On-chain Programs</title>
+
+		<link rel="stylesheet" href="dist/reset.css">
+		<link rel="stylesheet" href="dist/reveal.css">
+		<link rel="stylesheet" href="dist/theme/black.css" id="theme">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="plugin/highlight/monokai.css" id="highlight-theme">
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section class="page-cover">
+					<a href="https://solongwallet.com">
+						<img src="https://miro.medium.com/fit/c/262/262/1*BfkUqYUlGz0FL0Ue-FO3MA.png" alt="solongwallet" style="height: 180px; margin: 0 auto 4rem auto; background: transparent;" class="demo-logo">
+					</a>
+					<h3>Effective Solana On-chain Programs</h3>
+					<p>
+						<small>Created by <a href="http://solongwallet.com"> CZ@SolongWallet</a> </small>
+					</p>
+				</section>
+
+				<section class="page-aganda">
+					<h2>议&nbsp;题</h2>
+					<ol>
+						<li> HelloWolrd合约 </li>
+						<li> Solana合约开发的基本概念 </li>
+						<li> Solana合约开发的陷阱与缺陷 </li>
+					</ol>
+				</section>
+
+				<section class="page-1">
+					<section class="page-1-1">
+						<p> HelloWorld功能如下 </p>
+						<ol>	
+							<li> DApp调用一个名为`printhello`的接口，该接口发送一个Transaction
+								到链上 </li>
+							<li> 该Transaction包含两条Instruction：一条创建一个Account文件，一条将
+								helloworld的参数内容记录在这个Account文件中 </li>
+							<li> 执行成功后，返回这个Account文件的地址。
+								DApp可以通过这个地址，查询里面存放的内容 </li>
+						</ol>
+					</section>
+					<section class="page-1-2">
+						<p><small>根据上面的逻辑结构，我们依次创建如下几个文件：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							* instruction.rs ： 解析由runtime传过来的instruction
+							* processor.rs : 针对instruction的合约逻辑
+							* state.rs : 将需要存储的内容进行打包存储
+						</code></pre>
+						
+						<p><small>同时为了方便程序书写，我们创建：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							* error.rs: 出错处理，定义各种错误
+							* entrypoint.rs : 结合“entrypoint”特性，封装合约入口
+							.
+							├── Cargo.lock
+							├── Cargo.toml
+							├── src
+							│   ├── entrypoint.rs
+							│   ├── error.rs
+							│   ├── instruction.rs
+							│   ├── lib.rs
+							│   ├── processsor.rs
+							│   └── state.rs
+							└── Xargo.tom
+						</code></pre>
+					</section>
+					<section class="page-1-3">
+						<p><small>合约入口：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							entrypoint!(process_instruction);
+							pub fn process(_program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
+								let instruction = HelloWorldInstruction::unpack(input)?;
+						
+								match instruction {
+									HelloWorldInstruction::Hello {
+										message,
+									} => {
+										msg!("hello-world: HelloWorld");
+										Self::process_hello(accounts, message)
+									}
+									HelloWorldInstruction::Erase=>{
+										msg!("hello-world: Erase");
+										Self::process_erase(accounts)
+									}
+								}
+							}
+						</code></pre>
+					</section>
+					<section class="page-1-4">
+						<p><small>Instruction 定义：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							pub enum HelloWorldInstruction {
+								/// Hello print hello to an Account file
+								Hello{
+									/// message for hello
+									message: String,
+								},
+								/// Erase free the hello account 
+								Erase ,
+							}
+						</code></pre>
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="400" height="200" data-src="./images/message.jpg" alt="">
+					</section>
+					<section class="page-1-5">
+						<p><small>Instruction 解析：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							impl HelloWorldInstruction {
+								/// Unpacks a byte buffer into a [HelloWorldInstruction](enum.HelloWorldInstruction.html).
+								pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
+									use HelloWorldError::InvalidInstruction;
+							
+									let (&tag, rest) = input.split_first().ok_or(InvalidInstruction)?;
+									Ok(match tag { //HelloWorld
+										0 => {
+											let message= String::from(from_utf8(rest).unwrap());
+											Self::Hello{
+												message,
+											}
+										},
+										1 => Self::Erase,
+							
+										_ => return Err(HelloWorldError::InvalidInstruction.into()),
+									})
+								}
+				            ...
+						</code></pre>
+					</section>
+					<section class="page-1-6">
+						<p><small>State 存储：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							/// HelloWorld data.
+							#[repr(C)]
+							#[derive(Clone, Debug, Default, PartialEq)]
+							pub struct HelloWorldState {
+								/// account
+								pub account_key: Pubkey,
+								/// message 
+								pub message: String
+							}
+						</code></pre>
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="400" height="100" data-src="./images/state.jpg" alt="">
+					</section>
+					<section class="page-1-7">
+						<p><small>State 存储：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
+								let src = array_ref![src, 0, 289];
+								let (account_key_buf, message_len_buf, message_buf) = array_refs![src, 32, 1, 256];
+								let account_key = Pubkey::new_from_array(*account_key_buf);
+								let message_len = message_len_buf[0] as u8;
+								let (msg_buf, _rest) = message_buf.split_at(message_len.into());
+								let message = String::from(from_utf8(msg_buf).unwrap()) ;
+								Ok(HelloWorldState {
+									account_key,
+									message
+								})
+							}
+							fn pack_into_slice(&self, dst: &mut [u8]) {
+								let dst = array_mut_ref![dst, 0, 289];
+								let (
+									account_key_buf,
+									message_len_buf,
+									message_buf,
+								) = mut_array_refs![dst, 32, 1, 256];
+						 
+								account_key_buf.copy_from_slice(self.account_key.as_ref());
+								message_len_buf[0] = self.message.len() as u8;
+								message_buf.copy_from_slice(&self.message.as_bytes());
+							}
+						</code></pre>
+					</section>
+					<section class="page-1-8">
+						<p><small>处理过程：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							fn process_hello(
+								accounts: &[AccountInfo],
+								message: String,
+							) -> ProgramResult {
+						
+								let account_info_iter = &mut accounts.iter();
+								let client_info = next_account_info(account_info_iter)?;
+								let message_info = next_account_info(account_info_iter)?;
+						
+								// check permission
+								if !client_info.is_signer {
+									return Err(ProgramError::MissingRequiredSignature);
+								}
+								
+						
+								let mut state = HelloWorldState::unpack_unchecked(&message_info.data.borrow())?;
+								state.account_key = *client_info.key;
+								state.message = message;
+								
+								HelloWorldState::pack(state, &mut message_info.data.borrow_mut())?;
+						
+								Ok(())
+							}
+						</code></pre>
+					</section>
+					<section class="page-1-9">
+						<p><small>处理过程：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							pub fn process_erase(accounts: &[AccountInfo]) -> ProgramResult {
+								let account_info_iter = &mut accounts.iter();
+								let client_info = next_account_info(account_info_iter)?;
+								let message_info = next_account_info(account_info_iter)?;
+						
+						
+								//check permission
+								if !client_info.is_signer {
+									return Err(ProgramError::MissingRequiredSignature);
+								}
+						
+								let client_starting_lamports = client_info.lamports();
+								**client_info.lamports.borrow_mut() = client_starting_lamports + message_info.lamports();
+								**message_info.lamports.borrow_mut() = 0;
+								Ok(())
+							}
+						</code></pre>
+					</section>
+				</section>
+
+				<section class="page-2">
+					<section class="page-2-1">
+						<p> Solana的合约程序主要干三个事情 </p>
+						<ol>	
+							<li> 解析由runtime传过来的instruction </li>
+							<li> 执行instruction对应的逻辑 </li>
+							<li> 将执行结果中需要落地的部分，pack打包输出到指定的Account文 </li>
+						</ol>
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="678" height="338" data-src="./images/process.png" alt="">
+					</section>
+					<section class="page-2-2">
+						<p><small>Instruction：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+						   export class TransactionInstruction {
+							 keys: Array<AccountMeta> = [];
+							 programId: PublicKey;
+							 data: Buffer = Buffer.alloc(0);
+							 constructor(opts?: TransactionInstructionCtorFields) {
+							   opts && Object.assign(this, opts);
+							 }
+						   }
+						</code></pre>
+
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+					   
+						   pub fn process(_program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult 
+						</code></pre>
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="150" data-src="./images/instruction.png" alt="">
+						
+						
+					</section>
+					<section class="page-2-3">
+						<p><small>Transactions：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							export class Transaction {
+								signatures: Array<SignaturePubkeyPair> = [];
+								feePayer: ?PublicKey;
+								instructions: Array<TransactionInstruction> = [];
+								recentBlockhash: ?Blockhash;
+								nonceInfo: ?NonceInformation;
+								... 
+							}
+						</code></pre>
+					</section>
+					<section class="page-2-4">
+						<p><small>Account 定义：</small> </p>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="600" height="500" data-src="./images/account.jpg" alt="">
+					</section>
+					<section class="page-2-5">
+						<p><small>SPL Account 定义：</small> </p>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="600" height="500" data-src="./images/spl_account.jpg" alt="">
+					</section>
+
+					<section class="page-2-6">
+						<p><small>Mint 定义：</small> </p>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="600" height="500" data-src="./images/mint.jpg" alt="">
+					</section>
+
+					<section class="page-2-7">
+						<p><small>PublicKey 定义：</small> </p>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="200" data-src="./images/publickey.jpg" alt="">
+					</section>
+
+					<section class="page-2-8">
+						<p><small>Program Result 定义：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							/// Reasons the program may fail
+							#[derive(Clone, Debug, Deserialize, Eq, Error, PartialEq, Serialize)]
+							pub enum ProgramError {
+								/// Allows on-chain programs to implement program-specific error types and see them returned
+								/// by the Solana runtime. A program-specific error may be any type that is represented as
+								/// or serialized to a u32 integer.
+								#[error("Custom program error: {0:#x}")]
+								Custom(u32)
+								#[error("The arguments provided to a program instruction where invalid")]
+								InvalidArgument
+								...
+							}
+				
+							use std::{
+								result::Result as ResultGeneric,
+							};
+							pub type ProgramResult = ResultGeneric<(), ProgramError>;
+						</code></pre>
+					</section>
+				</section>
+
+				<section class="page-2">
+					<section class="page-2-1">
+						<p> Solana中的陷阱 </p>
+						<ol>	
+							<li> 不要用ETH来类比Solana </li>
+							<li> 多参考Token合约 </li>
+							<li> 多参考SDK代码 </li>
+						</ol>
+					</section>
+					<section class="page-2-2">
+						<p><small>Account长度固定</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							pub fn allocate(pubkey: &Pubkey, space: u64) -> Instruction {
+								let account_metas = vec![AccountMeta::new(*pubkey, true)];
+								Instruction::new(
+									system_program::id(),
+									&SystemInstruction::Allocate { space },
+									account_metas,
+								)
+							}
+						</code></pre>
+						<small> 根据Solana开发的计划，未来会提供修改Account长度的功能。
+							参见[Discrod 讨论](https://discordapp.com/channels/428295358100013066/517163444747894795/786290020465115147)
+							
+							对于一般程序的理解，文件对象都会有增删改查的功能，比如最开始可能不知道要用多少来存储，但是随着
+							用户的增加，要存储的内容越来越多，所以这个功能我们还是等待官方的开发吧。
+				        </small>
+					</section>
+					<section class="page-2-3">
+						<p><small>如何得到AccountInfo</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							invoke(
+								&system_instruction::transfer(
+									src_info.key,
+									dst_info.key,
+									amount,
+								),
+								&[
+									src_info.clone(),
+									dst_info.clone(),
+									system_program_info.clone(),
+								],
+							)?;
+						</code></pre>
+						<small> 唯一的方式是通过RPC接口，传入一个地址
+							给到节点，然后节点上的runtime会将这个地址对应的信息加载进来。也就是将instruction中的keys
+							对象，转换成AccountInfo数组。
+				        </small>
+					</section>
+					<section class="page-2-4">
+						<p><small>合约和普通记录Account 不具有SOL交易能力：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							// The balance of read-only and executable accounts may not change
+							if self.lamports != post.lamports {
+								if !self.is_writable {
+									return Err(InstructionError::ReadonlyLamportChange);
+								}
+								if self.is_executable {
+									return Err(InstructionError::ExecutableLamportChange);
+								}
+							}
+						</code></pre>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="300" data-src="./images/token_program.png" alt="">
+					</section>
+					<section class="page-2-5">
+						<p><small>合约和普通记录Account 不具有SOL交易能力：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							// Only the owner of the account may change owner and
+							//   only if the account is writable and
+							//   only if the account is not executable and
+							//   only if the data is zero-initialized or empty
+							if self.owner != post.owner
+								&& (!self.is_writable // line coverage used to get branch coverage
+									|| self.is_executable
+									|| *program_id != self.owner
+								|| !Self::is_zeroed(&post.data))
+							{
+								return Err(InstructionError::ModifiedProgramId);
+							}
+						</code></pre>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="200" data-src="./images/account.png" alt="">
+					</section>
+
+					<section class="page-2-6">
+						<p><small>runtime资源：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							Program GJqD99MTrSmQLN753x5ynkHdVGPrRGp35WqNnkXL3j1C consumed 200000 of 200000 compute units
+							Program GJqD99MTrSmQLN753x5ynkHdVGPrRGp35WqNnkXL3j1C BPF VM error: exceeded maximum number of instructions allowed (193200)
+							Program GJqD99MTrSmQLN753x5ynkHdVGPrRGp35WqNnkXL3j1C failed: custom program error: 0xb9f0002
+						</code></pre>
+
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							Transaction simulation failed: Error processing Instruction 0: Program failed to complete 
+							Program N42Qjxtrb1KMwCshrpbSJxj3khrZwN51VVv5Zdv2AFL invoke [1]
+							Program log: [solong-lottery]:Instruction: SignIn
+							Program log: [solong-lottery]:process_signin lottery:award[0] fund[1000000000] price[1000000000] billboard[Epj4jWrXq4JsEAhvDKMAdR47GqZve8dyKp29KdGfR4X] pool[255]
+							Program log: Error: memory allocation failed, out of memory
+							Program N42Qjxtrb1KMwCshrpbSJxj3khrZwN51VVv5Zdv2AFL consumed 109954 of 200000 compute units
+							Program N42Qjxtrb1KMwCshrpbSJxj3khrZwN51VVv5Zdv2AFL BPF VM error: BPF program Panicked in  at 0:0
+							Program failed to complete: UserError(SyscallError(Panic("", 0, 0)))
+							Program N42Qjxtrb1KMwCshrpbSJxj3khrZwN51VVv5Zdv2AFL failed: Program failed to complete						
+						</code></pre>
+
+					</section>
+
+					<section class="page-2-7">
+						<p><small>stack和heap限制：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+					        BpfComputeBudget {
+								max_units: 100_000,
+								log_units: 0,
+								log_64_units: 0,
+								create_program_address_units: 0,
+								invoke_units: 0,
+								max_invoke_depth: 1,
+								sha256_base_cost: 85,
+								sha256_byte_cost: 1,
+								max_call_depth: 20,
+								stack_frame_size: 4_096,
+								log_pubkey_units: 0,
+							};
+						</code></pre>
+						<small>在上面的配置中，我们看到了栈大小被限制在4KB，而上面没有列出来的堆大小，其实也有个限制，是32KB。
+							所以我们再使用栈空间的时候，需要注意，这个大小限制。另外存储的Vec以及Box对象的时候，也要注意不
+							能超过32KB</small>
+					</section>
+
+					<section class="page-2-8">
+						<p><small>ELF错误：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							Error: dynamic program error: ELF error: ELF error: .bss section not supported
+
+							Failed to parse ELF file: read-write: base offet 207896
+						</code></pre>
+						<small>报在ELF上的错误，一般是我们用了Solana目前不支持的rust的特性，比如用了HashMap。或者不支持
+							SDK的接口如：find_program_address</small>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+
+- No access to
+- `rand` or any crates that depend on it
+- `std::fs`
+- `std::net`
+- `std::os`
+- `std::future`
+- `std::process`
+- `std::sync`
+- `std::task`
+- `std::thread`
+- `std::time`
+- Limited access to:
+- `std::hash`
+- `std::os`
+- Bincode is extremely computationally expensive in both cycles and call depth and should be avoided
+- String formatting should be avoided since it is also computationally expensive
+- No support for `println!`, `print!`, the Solana SDK helpers in `src/log.rs` should be used instead
+- The runtime enforces a limit on the number of instructions a program can execute during the processing of one instructio
+						</code></pre>
+					</section>
+				</section>
+
+
+				<section class="page-end">
+					<h2>THE END</h2>
+					<h2>Thanks!</h2>
+					<p>
+						<small>Created by <a href="http://solongwallet.com"> CZ@SolongWallet</a> </small>
+					</p>
+				</section>
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="plugin/notes/notes.js"></script>
+		<script src="plugin/markdown/markdown.js"></script>
+		<script src="plugin/highlight/highlight.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+			});
+		</script>
+	</body>
+</html>
