@@ -29,11 +29,103 @@
 				<section class="page-aganda">
 					<h2>议&nbsp;题</h2>
 					<ol>
-						<li> HelloWolrd合约 </li>
 						<li> Solana合约开发的基本概念 </li>
+						<li> HelloWolrd合约 </li>
 						<li> Solana合约开发的陷阱与缺陷 </li>
 					</ol>
 				</section>
+
+				<section class="page-2">
+					<section class="page-2-1">
+						<p> Solana的合约程序主要干三个事情 </p>
+						<ol>	
+							<li> 解析由runtime传过来的instruction </li>
+							<li> 执行instruction对应的逻辑 </li>
+							<li> 将执行结果中需要落地的部分，pack打包输出到指定的Account文 </li>
+						</ol>
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="678" height="338" data-src="./images/process.png" alt="">
+					</section>
+					<section class="page-2-2">
+						<p><small>Instruction：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+						   export class TransactionInstruction {
+							 keys: Array<AccountMeta> = [];
+							 programId: PublicKey;
+							 data: Buffer = Buffer.alloc(0);
+							 constructor(opts?: TransactionInstructionCtorFields) {
+							   opts && Object.assign(this, opts);
+							 }
+						   }
+						</code></pre>
+
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+					   
+						   pub fn process(_program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult 
+						</code></pre>
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="150" data-src="./images/instruction.png" alt="">
+						
+						
+					</section>
+					<section class="page-2-3">
+						<p><small>Transactions：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							export class Transaction {
+								signatures: Array<SignaturePubkeyPair> = [];
+								feePayer: ?PublicKey;
+								instructions: Array<TransactionInstruction> = [];
+								recentBlockhash: ?Blockhash;
+								nonceInfo: ?NonceInformation;
+								... 
+							}
+						</code></pre>
+					</section>
+					<section class="page-2-4">
+						<p><small>Account 定义：</small> </p>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="600" height="500" data-src="./images/account.jpg" alt="">
+					</section>
+					<section class="page-2-5">
+						<p><small>SPL Account 定义：</small> </p>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="600" height="500" data-src="./images/spl_account.jpg" alt="">
+					</section>
+
+					<section class="page-2-6">
+						<p><small>Mint 定义：</small> </p>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="600" height="500" data-src="./images/mint.jpg" alt="">
+					</section>
+
+					<section class="page-2-7">
+						<p><small>PublicKey 定义：</small> </p>
+
+						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="200" data-src="./images/publickey.jpg" alt="">
+					</section>
+
+					<section class="page-2-8">
+						<p><small>Program Result 定义：</small> </p>
+						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+							/// Reasons the program may fail
+							#[derive(Clone, Debug, Deserialize, Eq, Error, PartialEq, Serialize)]
+							pub enum ProgramError {
+								/// Allows on-chain programs to implement program-specific error types and see them returned
+								/// by the Solana runtime. A program-specific error may be any type that is represented as
+								/// or serialized to a u32 integer.
+								#[error("Custom program error: {0:#x}")]
+								Custom(u32)
+								#[error("The arguments provided to a program instruction where invalid")]
+								InvalidArgument
+								...
+							}
+				
+							use std::{
+								result::Result as ResultGeneric,
+							};
+							pub type ProgramResult = ResultGeneric<(), ProgramError>;
+						</code></pre>
+					</section>
+				</section>
+
 
 				<section class="page-1">
 					<section class="page-1-1">
@@ -228,99 +320,9 @@
 					</section>
 				</section>
 
-				<section class="page-2">
-					<section class="page-2-1">
-						<p> Solana的合约程序主要干三个事情 </p>
-						<ol>	
-							<li> 解析由runtime传过来的instruction </li>
-							<li> 执行instruction对应的逻辑 </li>
-							<li> 将执行结果中需要落地的部分，pack打包输出到指定的Account文 </li>
-						</ol>
-						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="678" height="338" data-src="./images/process.png" alt="">
-					</section>
-					<section class="page-2-2">
-						<p><small>Instruction：</small> </p>
-						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
-						   export class TransactionInstruction {
-							 keys: Array<AccountMeta> = [];
-							 programId: PublicKey;
-							 data: Buffer = Buffer.alloc(0);
-							 constructor(opts?: TransactionInstructionCtorFields) {
-							   opts && Object.assign(this, opts);
-							 }
-						   }
-						</code></pre>
 
-						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
-					   
-						   pub fn process(_program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult 
-						</code></pre>
-						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="150" data-src="./images/instruction.png" alt="">
-						
-						
-					</section>
-					<section class="page-2-3">
-						<p><small>Transactions：</small> </p>
-						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
-							export class Transaction {
-								signatures: Array<SignaturePubkeyPair> = [];
-								feePayer: ?PublicKey;
-								instructions: Array<TransactionInstruction> = [];
-								recentBlockhash: ?Blockhash;
-								nonceInfo: ?NonceInformation;
-								... 
-							}
-						</code></pre>
-					</section>
-					<section class="page-2-4">
-						<p><small>Account 定义：</small> </p>
-
-						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="600" height="500" data-src="./images/account.jpg" alt="">
-					</section>
-					<section class="page-2-5">
-						<p><small>SPL Account 定义：</small> </p>
-
-						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="600" height="500" data-src="./images/spl_account.jpg" alt="">
-					</section>
-
-					<section class="page-2-6">
-						<p><small>Mint 定义：</small> </p>
-
-						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="600" height="500" data-src="./images/mint.jpg" alt="">
-					</section>
-
-					<section class="page-2-7">
-						<p><small>PublicKey 定义：</small> </p>
-
-						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="200" data-src="./images/publickey.jpg" alt="">
-					</section>
-
-					<section class="page-2-8">
-						<p><small>Program Result 定义：</small> </p>
-						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
-							/// Reasons the program may fail
-							#[derive(Clone, Debug, Deserialize, Eq, Error, PartialEq, Serialize)]
-							pub enum ProgramError {
-								/// Allows on-chain programs to implement program-specific error types and see them returned
-								/// by the Solana runtime. A program-specific error may be any type that is represented as
-								/// or serialized to a u32 integer.
-								#[error("Custom program error: {0:#x}")]
-								Custom(u32)
-								#[error("The arguments provided to a program instruction where invalid")]
-								InvalidArgument
-								...
-							}
-				
-							use std::{
-								result::Result as ResultGeneric,
-							};
-							pub type ProgramResult = ResultGeneric<(), ProgramError>;
-						</code></pre>
-					</section>
-				</section>
-
-				<section class="page-2">
-					<section class="page-2-1">
+				<section class="page-3">
+					<section class="page-3-1">
 						<p> Solana中的陷阱 </p>
 						<ol>	
 							<li> 不要用ETH来类比Solana </li>
@@ -328,7 +330,7 @@
 							<li> 多参考SDK代码 </li>
 						</ol>
 					</section>
-					<section class="page-2-2">
+					<section class="page-3-2">
 						<p><small>Account长度固定</small> </p>
 						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
 							pub fn allocate(pubkey: &Pubkey, space: u64) -> Instruction {
@@ -347,7 +349,7 @@
 							用户的增加，要存储的内容越来越多，所以这个功能我们还是等待官方的开发吧。
 				        </small>
 					</section>
-					<section class="page-2-3">
+					<section class="page-3-3">
 						<p><small>如何得到AccountInfo</small> </p>
 						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
 							invoke(
@@ -368,7 +370,7 @@
 							对象，转换成AccountInfo数组。
 				        </small>
 					</section>
-					<section class="page-2-4">
+					<section class="page-3-4">
 						<p><small>合约和普通记录Account 不具有SOL交易能力：</small> </p>
 						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
 							// The balance of read-only and executable accounts may not change
@@ -384,7 +386,7 @@
 
 						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="300" data-src="./images/token_program.png" alt="">
 					</section>
-					<section class="page-2-5">
+					<section class="page-3-5">
 						<p><small>合约和普通记录Account 不具有SOL交易能力：</small> </p>
 						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
 							// Only the owner of the account may change owner and
@@ -404,7 +406,7 @@
 						<img class="r-frame" style="background: rgba(255,255,255,0.1); " width="800" height="200" data-src="./images/account.png" alt="">
 					</section>
 
-					<section class="page-2-6">
+					<section class="page-3-6">
 						<p><small>runtime资源：</small> </p>
 						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
 							Program GJqD99MTrSmQLN753x5ynkHdVGPrRGp35WqNnkXL3j1C consumed 200000 of 200000 compute units
@@ -426,7 +428,7 @@
 
 					</section>
 
-					<section class="page-2-7">
+					<section class="page-3-7">
 						<p><small>stack和heap限制：</small> </p>
 						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
 					        BpfComputeBudget {
@@ -448,7 +450,7 @@
 							能超过32KB</small>
 					</section>
 
-					<section class="page-2-8">
+					<section class="page-3-8">
 						<p><small>ELF错误：</small> </p>
 						<pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
 							Error: dynamic program error: ELF error: ELF error: .bss section not supported
